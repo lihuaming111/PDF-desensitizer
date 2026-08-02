@@ -86,6 +86,10 @@ MEDICAL_RECORD = re.compile(
     re.IGNORECASE
 )
 
+INSTITUTION_NAME = re.compile(
+    r'医疗机构([一-鿿]{4,30}(?:医院|卫生院|医疗中心|妇幼保健院|社区卫生服务中心))'
+)
+
 # ---- 已脱敏标记（防重复处理） ----
 
 MASKED_MARKER = re.compile(r'[★*×X□■]{3,}')
@@ -102,6 +106,7 @@ PATTERN_LIST: list[tuple[str, re.Pattern, bool]] = [
     ("医生护士", DOCTOR_NURSE_NAME, False),
     ("地址", ADDRESS, False),
     ("病历号", MEDICAL_RECORD, False),
+    ("医疗机构", INSTITUTION_NAME, False),
 ]
 
 # ---- 排除逻辑（保留医院/科室名称） ----
