@@ -155,7 +155,7 @@ class Desensitizer:
                     if not target:
                         continue
 
-                    if is_hospital_or_department(matched_text):
+                    if pattern_type != "医疗机构" and is_hospital_or_department(matched_text):
                         continue
                     if pattern_type in ("患者姓名", "医生护士") and is_invalid_name(target):
                         continue
@@ -218,7 +218,7 @@ class Desensitizer:
                     if not target:
                         continue
 
-                    if is_hospital_or_department(matched_text):
+                    if pattern_type != "医疗机构" and is_hospital_or_department(matched_text):
                         continue
                     if pattern_type in ("患者姓名", "医生护士") and is_invalid_name(target):
                         continue
