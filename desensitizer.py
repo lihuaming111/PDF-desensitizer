@@ -175,8 +175,9 @@ class Desensitizer:
                         detections.append(
                             DetectionResult(page_num, pattern_type, target, rects)
                         )
-                        if pattern_type == "患者姓名":
+                        if pattern_type == "患者姓名" and target not in found_names:
                             found_names.add(target)
+                            self._report(f"    ★ 检测到患者姓名: {target}（将全文搜索此姓名）", 0)
 
         # 用已提取的患者姓名全文搜索（包括非标签位置）
         for name in found_names:
@@ -279,8 +280,9 @@ class Desensitizer:
                         detections.append(
                             DetectionResult(page_num, pattern_type, target, rects)
                         )
-                        if pattern_type == "患者姓名":
+                        if pattern_type == "患者姓名" and target not in found_names:
                             found_names.add(target)
+                            self._report(f"    ★ 检测到患者姓名: {target}（将全文搜索此姓名）", 0)
 
         # 用已提取的患者姓名搜索OCR全文
         for name in found_names:

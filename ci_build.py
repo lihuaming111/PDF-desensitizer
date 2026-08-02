@@ -31,6 +31,7 @@ subprocess.run([
     "--noconfirm", "--clean",
     "--add-data=patterns.py;.",
     "--add-data=desensitizer.py;.",
+    "--add-data=config.json;.",
     "--add-binary=tesseract/tesseract.exe;tesseract/",
     "--hidden-import=PIL",
     "--hidden-import=PIL.Image",
@@ -46,6 +47,8 @@ ROOT = Path("dist/PDF脱敏工具")
 INTERNAL = ROOT / "_internal"
 
 os.makedirs(INTERNAL / "tesseract" / "tessdata", exist_ok=True)
+shutil.copy("config.json", INTERNAL / "config.json")
+shutil.copy("config.json", ROOT / "config.json")
 os.makedirs(ROOT / "input", exist_ok=True)
 os.makedirs(ROOT / "output", exist_ok=True)
 

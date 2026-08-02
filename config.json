@@ -1,0 +1,10 @@
+{
+  "address_labels": [
+    "出生地",
+    "籍贯",
+    "工作单位及地址"
+  ],
+  "patient_name_labels": [],
+  "doctor_name_labels": [],
+  "medical_record_labels": []
+}

@@ -1,6 +1,8 @@
 """PDF脱敏工具 — 敏感数据正则表达式和检测规则"""
 
 import re
+import json
+from pathlib import Path
 from collections import namedtuple
 
 # ---- 检测结果数据结构 ----
@@ -18,6 +20,21 @@ FileDetectionSummary = namedtuple("FileDetectionSummary", [
     "detections",     # list[DetectionResult]
 ])
 
+# ---- 配置加载 ----
+
+def _load_config() -> dict:
+    """加载 config.json 中的自定义标签。"""
+    config_path = Path(__file__).parent / "config.json"
+    if config_path.exists():
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+_config = _load_config()
+
 # ---- Tier 1: 高精度模式匹配 ----
 
 ID_CARD = re.compile(r'\b[1-9]\d{16}[\dXx]\b')
@@ -27,21 +44,59 @@ EMAIL = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b')
 LONG_DIGITS = re.compile(r'\b\d{16,19}\b')
 
 # ---- Tier 2: 标签前缀匹配 ----
-# 分隔符说明: [：:，,\s]+ 兼容冒号、逗号（OCR常见将：误识别为，）和空格
 
-PATIENT_NAME = re.compile(
-    r'(?:患者姓名|病人姓名|家属姓名|联系人姓名|姓\s*名|姓名|联系人)'
-    r'[：:，,\s]*([一-鿿]{2,3})'
+def _build_patient_name_pattern() -> re.Pattern:
+    builtin = ['患者姓名', '病人姓名', '家属姓名', '联系人姓名', r'姓\s*名', '姓名', '联系人']
+    custom = _config.get("patient_name_labels", [])
+    labels = builtin + [re.escape(l) for l in custom if l.strip()]
+    return re.compile(r'(?:' + '|'.join(labels) + r')[：:，,\s]*([一-鿿]{2,3})')
+
+def _build_doctor_name_pattern() -> re.Pattern:
+    builtin = [
+        r'(?:主治|主任|副主任|住院|经治|主管|接诊|处置)?(?:医师|医生|大夫)',
+        r'(?:责任|主管|巡回)?(?:护士|护师)',
+        r'(?:麻醉|手术)?(?:医师|医生)',
+    ]
+    custom = _config.get("doctor_name_labels", [])
+    labels = builtin + [re.escape(l) for l in custom if l.strip()]
+    return re.compile(r'(?:' + '|'.join(labels) + r')[：:，,\s]*([一-鿿]{2,3})')
+
+def _build_address_pattern() -> re.Pattern:
+    builtin = [
+        '地址', '住址', '家庭住址', '家庭地址', '通讯地址', '联系地址',
+        '户口地址', '现住址', '详细地址', '户籍地址', '常住地址',
+        '单位地址', '注册地址', '联系地址',
+    ]
+    custom = _config.get("address_labels", [])
+    labels = builtin + [re.escape(l) for l in custom if l.strip()]
+    return re.compile(
+        r'(?:' + '|'.join(labels) + r')[：:，,\s]*'
+        r'([^\s\-].{4,79}?)(?:$|。|；|\s*(?:电话|邮编|单位电话)\b)',
+        re.DOTALL
+    )
+
+def _build_medical_record_pattern() -> re.Pattern:
+    builtin = ['住院号', '病历号', '病案号', '登记号', '门诊号', '就诊号',
+               '病例号', '住院病历号', '住院号ID', '病历号No']
+    custom = _config.get("medical_record_labels", [])
+    labels = builtin + [re.escape(l) for l in custom if l.strip()]
+    return re.compile(
+        r'(?:' + '|'.join(labels) + r')[：:，,\s]+'
+        r'([A-Za-z0-9\-/_]+)',
+        re.IGNORECASE
+    )
+
+PATIENT_NAME = _build_patient_name_pattern()
+DOCTOR_NURSE_NAME = _build_doctor_name_pattern()
+ADDRESS = _build_address_pattern()
+MEDICAL_RECORD = _build_medical_record_pattern()
+
+INSTITUTION_NAME = re.compile(
+    r'医疗机构([一-鿿]{4,30}(?:医院|卫生院|医疗中心|妇幼保健院|社区卫生服务中心))'
 )
 
-DOCTOR_NURSE_NAME = re.compile(
-    r'(?:(?:主治|主任|副主任|住院|经治|主管|接诊|处置)?(?:医师|医生|大夫)'
-    r'|(?:责任|主管|巡回)?(?:护士|护师)'
-    r'|(?:麻醉|手术)?(?:医师|医生))'
-    r'[：:，,\s]*([一-鿿]{2,3})'
-)
+# ---- OCR识别到的"名字"黑名单 ----
 
-# OCR识别到的"名字"如果包含以下词则排除
 _NAME_BLACKLIST = {
     '主治', '住院', '主任', '医师', '护士', '性别', '年龄', '出生',
     '入院', '出院', '科室', '诊断', '手术', '检查', '治疗', '药物',
@@ -61,36 +116,16 @@ _NAME_BLACKLIST = {
     '局攻', '局二', '质拉', '十欧', '天签', '庆迷', '军迷',
     '氏迷', '仍迷', '数迷', '签科', '签的', '名科', '房记', '房后',
     '记录', '首次', '日常', '特殊', '出院小结', '入院记录',
-    # 病历中非人名的常见词
     '术前', '发言', '保证', '讲明', '陈述', '交接', '共同', '确认',
     '处理', '根据', '明确', '记录', '告知', '同意', '说明', '注意',
     '观察', '继续', '给予', '考虑', '建议', '可能', '需要', '已经',
     '目前', '进一步', '必要时', '定期', '随访', '复查', '入院病情',
     '质质近', '质近', '了多', '二钊', '基', '讽基', '风术', '色侯',
     '色吴', '了和', '于厘', '匕峭', '并了',
-    '姓名',  # 标签本身不是人名
+    '姓名',
 }
 
-ADDRESS = re.compile(
-    r'(?:地址|住址|家庭住址|家庭地址|通讯地址|联系地址|户口地址'
-    r'|现住址|详细地址|户籍地址|常住地址|单位地址|注册地址'
-    r'|联系地址|出生地|籍贯|工作单位及地址)[：:，,\s]*'
-    r'([^\s\-].{4,79}?)(?:$|。|；|\s*(?:电话|邮编|单位电话)\b)',
-    re.DOTALL
-)
-
-MEDICAL_RECORD = re.compile(
-    r'(?:住院号|病历号|病案号|登记号|门诊号|就诊号'
-    r'|病例号|住院病历号|住院号ID|病历号No)[：:，,\s]+'
-    r'([A-Za-z0-9\-/_]+)',
-    re.IGNORECASE
-)
-
-INSTITUTION_NAME = re.compile(
-    r'医疗机构([一-鿿]{4,30}(?:医院|卫生院|医疗中心|妇幼保健院|社区卫生服务中心))'
-)
-
-# ---- 已脱敏标记（防重复处理） ----
+# ---- 已脱敏标记 ----
 
 MASKED_MARKER = re.compile(r'[★*×X□■]{3,}')
 
@@ -109,7 +144,7 @@ PATTERN_LIST: list[tuple[str, re.Pattern, bool]] = [
     ("医疗机构", INSTITUTION_NAME, False),
 ]
 
-# ---- 排除逻辑（保留医院/科室名称） ----
+# ---- 排除逻辑 ----
 
 HOSPITAL_KEYWORDS = [
     '医院', '卫生院', '卫生所', '医疗中心', '妇幼保健',
@@ -139,7 +174,6 @@ def is_invalid_name(name: str) -> bool:
     for kw in _NAME_BLACKLIST:
         if len(kw) >= 2 and kw in stripped:
             return True
-    # 无中文字符的视为无效人名
     if not any('一' <= c <= '鿿' for c in stripped):
         return True
     return False

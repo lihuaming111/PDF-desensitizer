@@ -75,6 +75,7 @@ def build_mac():
         "--noconfirm", "--clean",
         "--add-data", f"patterns.py{sep}.",
         "--add-data", f"desensitizer.py{sep}.",
+        "--add-data", f"config.json{sep}.",
         "--add-binary", f"{tess}{sep}tesseract/",
         "--hidden-import", "PIL",
         "--hidden-import", "PIL.Image",
@@ -94,6 +95,10 @@ def build_mac():
             if f.stem in ("chi_sim", "chi_tra", "eng", "osd"):
                 shutil.copy2(f, dst / f.name)
         print(f"  语言包已复制 (chi_sim, eng)")
+
+    # 复制 config.json 到便于编辑的位置
+    shutil.copy(BASE / "config.json", DIST / APP_NAME / "config.json")
+    shutil.copy(BASE / "config.json", bundle_dir / "config.json")
 
     # 创建 input/output 目录
     (DIST / APP_NAME / "input").mkdir(parents=True, exist_ok=True)
