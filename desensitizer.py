@@ -201,6 +201,7 @@ class Desensitizer:
                          f"页面尺寸={pix.width}x{pix.height}")
         except Exception as e:
             self._report(f"    OCR失败: {e}", 0)
+            return []
 
         # 将OCR结果按行分组
         lines = self._group_ocr_lines(ocr_data)
