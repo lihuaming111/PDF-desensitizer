@@ -138,6 +138,8 @@ class Desensitizer:
     ) -> list[DetectionResult]:
         """对含文字层的页面执行模式匹配。"""
         detections: list[DetectionResult] = []
+        total_chars = sum(len(b[4]) for b in text_blocks)
+        self._report(f"  第{page_num+1}页: 文字层, {len(text_blocks)}块, {total_chars}字符", 0)
 
         for block in text_blocks:
             text = block[4]
@@ -171,6 +173,15 @@ class Desensitizer:
                         detections.append(
                             DetectionResult(page_num, pattern_type, target, rects)
                         )
+
+        if detections:
+            type_counts = {}
+            for d in detections:
+                type_counts[d.pattern_type] = type_counts.get(d.pattern_type, 0) + 1
+            detail = ", ".join(f"{t}:{c}" for t, c in type_counts.items())
+            self._report(f"    检测到 {len(detections)} 处 ({detail})", 0)
+        else:
+            self._report(f"    未检测到敏感数据", 0)
 
         return detections
 
