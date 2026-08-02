@@ -25,19 +25,23 @@
           run: pyinstaller --onedir --windowed --name=PDF脱敏工具 --distpath=dist --workpath=build_output --noconfirm --clean --add-data=patterns.py;. --add-data=desensitizer.py;.
   --add-binary=tesseract/tesseract.exe;tesseract/ --hidden-import=PIL --hidden-import=PIL.Image --hidden-import=pytesseract --hidden-import=fitz --hidden-import=tkinter main.py
         - name: Bundle
-          shell: cmd
           run: |
-            mkdir dist\PDF脱敏工具\_internal\tesseract\tessdata
-            xcopy tesseract\tessdata\chi_sim.traineddata dist\PDF脱敏工具\_internal\tesseract\tessdata\ /Y
-            mkdir dist\PDF脱敏工具\input dist\PDF脱敏工具\output
-            echo @echo off>dist\PDF脱敏工具\启动.bat
-            echo chcp 65001 ^>nul>>dist\PDF脱敏工具\启动.bat
-            echo cd /d %%~dp0>>dist\PDF脱敏工具\启动.bat
-            echo set TESSDATA_PREFIX=%%~dp0_internal\tesseract\tessdata>>dist\PDF脱敏工具\启动.bat
-            echo set PATH=%%~dp0_internal\tesseract;%%PATH%%>>dist\PDF脱敏工具\启动.bat
-            echo start "" %%~dp0PDF脱敏工具.exe>>dist\PDF脱敏工具\启动.bat
+            import os, shutil
+            os.makedirs("dist/PDF脱敏工具/_internal/tesseract/tessdata", exist_ok=True)
+            shutil.copy("tesseract/tessdata/chi_sim.traineddata", "dist/PDF脱敏工具/_internal/tesseract/tessdata/")
+            os.makedirs("dist/PDF脱敏工具/input", exist_ok=True)
+            os.makedirs("dist/PDF脱敏工具/output", exist_ok=True)
+            with open("dist/PDF脱敏工具/启动.bat", "w", encoding="gbk") as f:
+                f.write("@echo off\r\n")
+                f.write("chcp 65001 >nul\r\n")
+                f.write('cd /d "%~dp0"\r\n')
+                f.write('set TESSDATA_PREFIX=%~dp0_internal\\tesseract\\tessdata\r\n')
+                f.write('set PATH=%~dp0_internal\\tesseract;%PATH%\r\n')
+                f.write('start "" "%~dp0PDF脱敏工具.exe"\r\n')
+          shell: python
         - name: Zip
-          run: Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
+          shell: cmd
+          run: powershell Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
         - uses: actions/upload-artifact@v4
           with:
             name: PDF脱敏工具_Windows
