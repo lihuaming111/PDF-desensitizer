@@ -10,13 +10,18 @@ import subprocess
 import os
 
 # ---- 便携版 Tesseract 自动发现 ----
-_BASE_DIR = Path(__file__).parent.resolve()
+_BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent.resolve()))
 _TESSERACT_BIN = _BASE_DIR / "tesseract" / "tesseract.exe"  # Windows 便携版
 if not _TESSERACT_BIN.exists():
     _TESSERACT_BIN = _BASE_DIR / "tesseract" / "tesseract"  # macOS 便携版
 if not _TESSERACT_BIN.exists():
     _TESSERACT_BIN = _BASE_DIR / "tesseract"  # macOS PyInstaller
 if _TESSERACT_BIN.exists():
+    # 将 tesseract 目录加入 DLL 搜索路径（Windows 需要找到 leptonica 等 DLL）
+    if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+        os.add_dll_directory(str(_TESSERACT_BIN.parent))
+    # 确保 tesseract 目录在 PATH 中（DLL 查找 + pytesseract 子进程调用）
+    os.environ["PATH"] = str(_TESSERACT_BIN.parent) + os.pathsep + os.environ.get("PATH", "")
     import pytesseract
     pytesseract.pytesseract.tesseract_cmd = str(_TESSERACT_BIN)
     os.environ.setdefault("TESSDATA_PREFIX", str(_TESSERACT_BIN.parent / "tessdata"))
