@@ -74,10 +74,18 @@ def _build_medical_record_pattern() -> re.Pattern:
         re.IGNORECASE
     )
 
+def _build_sensitive_words_pattern() -> re.Pattern | None:
+    words = _config.get("sensitive_words", [])
+    words = [re.escape(w) for w in words if w.strip()]
+    if not words:
+        return None
+    return re.compile('|'.join(words))
+
 PATIENT_NAME = _build_patient_name_pattern()
 DOCTOR_NURSE_NAME = _build_doctor_name_pattern()
 ADDRESS = _build_address_pattern()
 MEDICAL_RECORD = _build_medical_record_pattern()
+SENSITIVE_WORDS = _build_sensitive_words_pattern()
 
 INSTITUTION_NAME = re.compile(
     r'医疗机构([一-鿿]{4,30}(?:医院|卫生院|医疗中心|妇幼保健院|社区卫生服务中心))'
@@ -119,7 +127,7 @@ MASKED_MARKER = re.compile(r'[★*×X□■]{3,}')
 
 # ---- 主模式列表 ----
 
-PATTERN_LIST: list[tuple[str, re.Pattern, bool]] = [
+_PATTERNS: list[tuple[str, re.Pattern, bool]] = [
     ("身份证号", ID_CARD, True),
     ("手机号", PHONE, True),
     ("固定电话", LANDLINE, True),
@@ -131,6 +139,10 @@ PATTERN_LIST: list[tuple[str, re.Pattern, bool]] = [
     ("病历号", MEDICAL_RECORD, False),
     ("医疗机构", INSTITUTION_NAME, False),
 ]
+if SENSITIVE_WORDS:
+    _PATTERNS.append(("敏感词", SENSITIVE_WORDS, True))
+
+PATTERN_LIST: list[tuple[str, re.Pattern, bool]] = _PATTERNS
 
 # ---- 排除逻辑 ----
 
