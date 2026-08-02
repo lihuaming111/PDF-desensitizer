@@ -8,6 +8,17 @@ import sys
 import threading
 import subprocess
 import os
+import ctypes
+
+# ---- Windows 短路径转换（避免中文字符导致 Tesseract 文件系统错误） ----
+def _short_path(path: Path) -> str:
+    """Windows 上转换为 8.3 短路径名，避免 Unicode 编码问题。"""
+    if sys.platform != "win32":
+        return str(path)
+    buf = ctypes.create_unicode_buffer(1024)
+    if ctypes.windll.kernel32.GetShortPathNameW(str(path), buf, 1024):
+        return buf.value
+    return str(path)
 
 # ---- 便携版 Tesseract 自动发现 ----
 _BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent.resolve()))
@@ -24,8 +35,9 @@ if _TESSERACT_BIN.exists():
     # 确保 tesseract 目录在 PATH 中（DLL 查找 + pytesseract 子进程调用）
     os.environ["PATH"] = str(_TESSERACT_BIN.parent) + os.pathsep + os.environ.get("PATH", "")
     import pytesseract
-    pytesseract.pytesseract.tesseract_cmd = str(_TESSERACT_BIN)
-    os.environ.setdefault("TESSDATA_PREFIX", str(_TESSERACT_BIN.parent / "tessdata"))
+    pytesseract.pytesseract.tesseract_cmd = _short_path(_TESSERACT_BIN)
+    _tessdata_dir = _short_path(_TESSERACT_BIN.parent / "tessdata")
+    os.environ["TESSDATA_PREFIX"] = _tessdata_dir
     _TESSERACT_FOUND = True
 
 import fitz

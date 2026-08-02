@@ -64,8 +64,8 @@ launcher.write_text(
     "@echo off\r\n"
     "chcp 65001 >nul\r\n"
     'cd /d "%~dp0"\r\n'
-    r'set "TESSDATA_PREFIX=%~dp0_internal\tesseract\tessdata"' + "\r\n"
-    r'set "PATH=%~dp0_internal\tesseract;%PATH%"' + "\r\n"
+    r'set "TESSDATA_PREFIX=%~sdp0_internal\tesseract\tessdata"' + "\r\n"
+    r'set "PATH=%~sdp0_internal\tesseract;%PATH%"' + "\r\n"
     'start "" "%~dp0PDF脱敏工具.exe"\r\n',
     encoding="gbk",
 )
