@@ -332,6 +332,8 @@ class DesensitizerApp:
 
     def _on_progress(self, message: str, fraction: float):
         self.root.after(0, lambda: self.status_var.set(message))
+        if message.strip():
+            self._log(message)
 
     def _update_tree_status(self, filename: str, status_text: str, tag: str):
         if self.file_tree.exists(filename):
