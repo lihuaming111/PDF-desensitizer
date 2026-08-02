@@ -40,7 +40,7 @@ subprocess.run([
     "main.py",
 ], check=True)
 
-# Step 4: Bundle tessdata, create launcher, zip
+# Step 4: Bundle tessdata, DLLs, create launcher, zip
 print("[4/4] Bundling...")
 ROOT = Path("dist/PDF脱敏工具")
 INTERNAL = ROOT / "_internal"
@@ -48,6 +48,11 @@ INTERNAL = ROOT / "_internal"
 os.makedirs(INTERNAL / "tesseract" / "tessdata", exist_ok=True)
 os.makedirs(ROOT / "input", exist_ok=True)
 os.makedirs(ROOT / "output", exist_ok=True)
+
+# Copy all tesseract files (exe + DLLs) into the bundle
+for f in Path("tesseract").iterdir():
+    if f.is_file():
+        shutil.copy2(f, INTERNAL / "tesseract" / f.name)
 
 shutil.copy("tesseract/tessdata/chi_sim.traineddata", INTERNAL / "tesseract/tessdata/chi_sim.traineddata")
 for f in Path("tesseract/tessdata").glob("*.traineddata"):
