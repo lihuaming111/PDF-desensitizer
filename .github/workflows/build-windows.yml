@@ -35,7 +35,6 @@
             --clean
             --add-data=patterns.py;.
             --add-data=desensitizer.py;.
-            --add-data=bundle.py;.
             --add-binary=tesseract/tesseract.exe;tesseract/
             --hidden-import=PIL
             --hidden-import=PIL.Image
@@ -45,10 +44,18 @@
             main.py
 
         - name: Bundle and package
-          run: python bundle.py
-
-        - name: Zip
-          run: Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
+          shell: cmd
+          run: |
+            mkdir dist\PDF脱敏工具\_internal\tesseract\tessdata
+            xcopy tesseract\tessdata\chi_sim.traineddata dist\PDF脱敏工具\_internal\tesseract\tessdata\ /Y
+            mkdir dist\PDF脱敏工具\input dist\PDF脱敏工具\output
+            echo @echo off>dist\PDF脱敏工具\启动.bat
+            echo chcp 65001 ^>nul>>dist\PDF脱敏工具\启动.bat
+            echo cd /d %%~dp0>>dist\PDF脱敏工具\启动.bat
+            echo set TESSDATA_PREFIX=%%~dp0_internal\tesseract\tessdata>>dist\PDF脱敏工具\启动.bat
+            echo set PATH=%%~dp0_internal\tesseract;%%PATH%%>>dist\PDF脱敏工具\启动.bat
+            echo start "" %%~dp0PDF脱敏工具.exe>>dist\PDF脱敏工具\启动.bat
+            Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
 
         - uses: actions/upload-artifact@v4
           with:
