@@ -23,14 +23,12 @@
 
         - name: Build with PyInstaller
           run: pyinstaller --onedir --windowed --name="PDF脱敏工具" --distpath=dist --workpath=build_output --noconfirm --clean --add-data="patterns.py;." --add-data="desensitizer.py;."
-  --add-binary="tesseract/tesseract.exe;tesseract/" --hidden-import=PIL --hidden-import=PIL.Image --hidden-import=pytesseract --hidden-import=fitz --hidden-import=tkinter main.py
+  --add-data="bundle.py;." --add-binary="tesseract/tesseract.exe;tesseract/" --hidden-import=PIL --hidden-import=PIL.Image --hidden-import=pytesseract --hidden-import=fitz --hidden-import=tkinter
+  main.py
 
         - name: Bundle and package
-          run: python -c "import os,shutil; os.makedirs('dist/PDF脱敏工具/_internal/tesseract/tessdata',exist_ok=True); 
-  shutil.copy('tesseract/tessdata/chi_sim.traineddata','dist/PDF脱敏工具/_internal/tesseract/tessdata/'); os.makedirs('dist/PDF脱敏工具/input',exist_ok=True); 
-  os.makedirs('dist/PDF脱敏工具/output',exist_ok=True); open('dist/PDF脱敏工具/启动.bat','w',encoding='gbk').write('@echo off\r\nchcp 65001 >nul\r\ncd /d %~dp0\r\nset 
-  TESSDATA_PREFIX=%~dp0_internal\\tesseract\\tessdata\r\nset PATH=%~dp0_internal\\tesseract;%PATH%\r\nstart \"\" \"%~dp0PDF脱敏工具.exe\"\r\n')"
-  
+          run: python bundle.py
+
         - name: Zip
           run: Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
 
