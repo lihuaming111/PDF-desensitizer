@@ -1,0 +1,13 @@
+dist/
+build_output/
+__pycache__/
+*.spec
+.env
+*.pyc
+.DS_Store
+input/
+output/
+未命名文件夹/
+tmp/
+setup_windows.bat
+setup_windows_portable_副本.bat
