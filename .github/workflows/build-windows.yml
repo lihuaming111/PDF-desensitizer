@@ -1,0 +1,55 @@
+name: Build Windows
+
+  on:
+    push:
+      branches: [main, master]
+    workflow_dispatch:
+
+  jobs:
+    build:
+      runs-on: windows-latest
+      steps:
+        - uses: actions/checkout@v4
+
+        - uses: actions/setup-python@v5
+          with:
+            python-version: "3.12"
+
+        - name: Install Python dependencies
+          run: pip install pyinstaller pymupdf pytesseract Pillow -q
+
+        - name: Download Tesseract
+          run: |
+            curl -L -o tesseract-setup.exe "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe"
+            tesseract-setup.exe /SILENT /DIR="tesseract"
+            curl -L -o tesseract/tessdata/chi_sim.traineddata "https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata"
+
+        - name: Build with PyInstaller
+          run: |
+            pyinstaller --onedir --windowed --name="PDF脱敏工具" --distpath=dist --workpath=build_output --noconfirm --clean --add-data="patterns.py;." --add-data="desensitizer.py;." 
+  --add-binary="tesseract/tesseract.exe;tesseract/" --hidden-import=PIL --hidden-import=PIL.Image --hidden-import=pytesseract --hidden-import=fitz --hidden-import=tkinter main.py
+
+        - name: Bundle tessdata
+          run: |
+            mkdir dist/PDF脱敏工具/_internal/tesseract/tessdata
+            xcopy tesseract/tessdata/chi_sim.traineddata dist/PDF脱敏工具/_internal/tesseract/tessdata/ /Y
+            if exist tesseract/tessdata/eng.traineddata xcopy tesseract/tessdata/eng.traineddata dist/PDF脱敏工具/_internal/tesseract/tessdata/ /Y
+            mkdir dist/PDF脱敏工具/input
+            mkdir dist/PDF脱敏工具/output
+
+        - name: Create launcher
+          run: |
+            echo @echo off > dist/PDF脱敏工具/启动.bat
+            echo chcp 65001 ^>nul >> dist/PDF脱敏工具/启动.bat
+            echo cd /d "%%~dp0" >> dist/PDF脱敏工具/启动.bat
+            echo set "TESSDATA_PREFIX=%%~dp0_internal\tesseract\tessdata" >> dist/PDF脱敏工具/启动.bat
+            echo set "PATH=%%~dp0_internal\tesseract;%%PATH%%" >> dist/PDF脱敏工具/启动.bat
+            echo start "" "%%~dp0PDF脱敏工具.exe" >> dist/PDF脱敏工具/启动.bat
+
+        - name: Package
+          run: Compress-Archive -Path dist/PDF脱敏工具/* -DestinationPath PDF脱敏工具_Windows.zip
+
+        - uses: actions/upload-artifact@v4
+          with:
+            name: PDF脱敏工具_Windows
+            path: PDF脱敏工具_Windows.zip
