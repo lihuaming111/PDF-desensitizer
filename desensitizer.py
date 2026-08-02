@@ -160,7 +160,7 @@ class Desensitizer:
                     if not target:
                         continue
 
-                    if pattern_type != "医疗机构" and is_hospital_or_department(matched_text):
+                    if pattern_type not in ("医疗机构", "敏感词") and is_hospital_or_department(matched_text):
                         continue
                     if pattern_type in ("患者姓名", "医生护士") and is_invalid_name(target):
                         continue
@@ -248,7 +248,7 @@ class Desensitizer:
                     if not target:
                         continue
 
-                    if pattern_type != "医疗机构" and is_hospital_or_department(matched_text):
+                    if pattern_type not in ("医疗机构", "敏感词") and is_hospital_or_department(matched_text):
                         continue
                     if pattern_type in ("患者姓名", "医生护士") and is_invalid_name(target):
                         continue
@@ -323,10 +323,10 @@ class Desensitizer:
         # 按Y坐标排序，然后按X坐标排序
         entries.sort(key=lambda e: (e["y"], e["x"]))
 
-        # 基于Y坐标聚类：相邻词Y差小于平均字高的0.6倍视为同一行
+        # 基于Y坐标聚类：相邻词Y差小于平均字高的1.2倍视为同一行
         heights = [e["h"] for e in entries if e["h"] > 0]
         avg_height = sum(heights) / len(heights) if heights else 20
-        y_threshold = max(avg_height * 0.6, 5)
+        y_threshold = max(avg_height * 1.2, 8)
 
         lines = []
         current_line = [entries[0]]
