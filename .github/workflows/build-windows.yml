@@ -9,10 +9,6 @@
         - uses: actions/checkout@v4
 
         - uses: actions/setup-python@v5
-          with:
-            python-version: "3.12"
-
-        - name: Install Python dependencies
           run: pip install pyinstaller pymupdf pytesseract Pillow -q
 
         - name: Download and extract Tesseract
@@ -43,7 +39,7 @@
             --hidden-import=tkinter
             main.py
 
-        - name: Bundle and package
+        - name: Bundle
           shell: cmd
           run: |
             mkdir dist\PDF脱敏工具\_internal\tesseract\tessdata
@@ -55,7 +51,9 @@
             echo set TESSDATA_PREFIX=%%~dp0_internal\tesseract\tessdata>>dist\PDF脱敏工具\启动.bat
             echo set PATH=%%~dp0_internal\tesseract;%%PATH%%>>dist\PDF脱敏工具\启动.bat
             echo start "" %%~dp0PDF脱敏工具.exe>>dist\PDF脱敏工具\启动.bat
-            Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
+
+        - name: Zip
+          run: Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
 
         - uses: actions/upload-artifact@v4
           with:
