@@ -126,6 +126,7 @@ class Desensitizer:
         if text_blocks:
             return self._scan_text_page(page, page_num, text_blocks)
         else:
+            self._report(f"  第{page_num+1}页: 扫描件，启用OCR识别...", 0)
             return self._scan_ocr_page(page, page_num)
 
     # ------------------------------------------------------------------
@@ -194,8 +195,12 @@ class Desensitizer:
                 image, lang=OCR_LANG, output_type=pytesseract.Output.DICT,
                 config="--psm 4",  # 单列可变大小文本
             )
-        except Exception:
-            return []
+            words_found = sum(1 for t in ocr_data["text"] if t.strip())
+            self._report(f"    OCR完成: tesseract={pytesseract.pytesseract.tesseract_cmd}, "
+                         f"lang={OCR_LANG}, 识别词数={words_found}, "
+                         f"页面尺寸={pix.width}x{pix.height}")
+        except Exception as e:
+            self._report(f"    OCR失败: {e}", 0)
 
         # 将OCR结果按行分组
         lines = self._group_ocr_lines(ocr_data)
