@@ -11,18 +11,14 @@
         - run: pip install pyinstaller pymupdf pytesseract Pillow -q
         - name: Download Tesseract
           shell: cmd
-          run: curl -L -o tesseract.zip "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe" && 7z x tesseract.zip -otesseract -y && curl -L -o
-   tesseract\tessdata\chi_sim.traineddata "https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata"
+          run: curl -L -o t.zip "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe" && 7z x t.zip -otesseract -y && curl -L -o
+  tesseract\tessdata\chi_sim.traineddata "https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata"
         - name: Build
           shell: cmd
           run: pyinstaller --onedir --windowed --name=PDF脱敏工具 --distpath=dist --workpath=build_output --noconfirm --clean --add-data=patterns.py;. --add-data=desensitizer.py;.
   --add-binary=tesseract/tesseract.exe;tesseract/ --hidden-import=PIL --hidden-import=PIL.Image --hidden-import=pytesseract --hidden-import=fitz --hidden-import=tkinter main.py
         - name: Bundle and zip
-          run: python -c "import os,shutil; os.makedirs('dist/PDF脱敏工具/_internal/tesseract/tessdata',exist_ok=True); 
-  shutil.copy('tesseract/tessdata/chi_sim.traineddata','dist/PDF脱敏工具/_internal/tesseract/tessdata/'); os.makedirs('dist/PDF脱敏工具/input',exist_ok=True); 
-  os.makedirs('dist/PDF脱敏工具/output',exist_ok=True); f=open('dist/PDF脱敏工具/启动.bat','w',encoding='gbk'); f.write('\x40echo off\r\nchcp 65001 >nul\r\ncd /d %~dp0\r\nset 
-  TESSDATA_PREFIX=%~dp0_internal\\tesseract\\tessdata\r\nset PATH=%~dp0_internal\\tesseract;%PATH%\r\nstart \x22\x22 \x22%~dp0PDF脱敏工具.exe\x22\r\n'); f.close(); os.system('powershell Compress-Archive
-   -Path dist\\PDF脱敏工具\\* -DestinationPath PDF脱敏工具_Windows.zip')"
+          run: python bundle.py && powershell Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
         - uses: actions/upload-artifact@v4
           with:
             name: PDF脱敏工具_Windows
