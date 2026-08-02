@@ -8,22 +8,7 @@
         - uses: actions/setup-python@v5
           with:
             python-version: "3.12"
-        - run: pip install pyinstaller pymupdf pytesseract Pillow -q
-        - name: Download Tesseract
-          shell: cmd
-          run: |
-            curl -L -o t.zip https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe
-            7z x t.zip -otesseract -y
-            curl -L -o tesseract\tessdata\chi_sim.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata
-        - name: Build
-          shell: cmd
-          run: |
-            pyinstaller --onedir --windowed --name=PDF脱敏工具 --distpath=dist --workpath=build_output --noconfirm --clean --add-data=patterns.py;. --add-data=desensitizer.py;. 
-  --add-binary=tesseract/tesseract.exe;tesseract/ --hidden-import=PIL --hidden-import=PIL.Image --hidden-import=pytesseract --hidden-import=fitz --hidden-import=tkinter main.py
-        - name: Bundle
-          run: python bundle.py
-        - name: Zip
-          run: powershell Compress-Archive -Path dist\PDF脱敏工具\* -DestinationPath PDF脱敏工具_Windows.zip
+        - run: python ci_build.py
         - uses: actions/upload-artifact@v4
           with:
             name: PDF脱敏工具_Windows
