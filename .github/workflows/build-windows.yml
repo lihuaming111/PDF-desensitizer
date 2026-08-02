@@ -15,11 +15,11 @@
         - name: Install Python dependencies
           run: pip install pyinstaller pymupdf pytesseract Pillow -q
 
-        - name: Download Tesseract
+        - name: Download and extract Tesseract
           shell: cmd
           run: |
-            curl -L -o tesseract-setup.exe "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe"
-            .\tesseract-setup.exe /SILENT /DIR=tesseract
+            curl -L -o tesseract.zip "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe"
+            7z x tesseract.zip -otesseract -y
             curl -L -o tesseract\tessdata\chi_sim.traineddata "https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata"
 
         - name: Build with PyInstaller
