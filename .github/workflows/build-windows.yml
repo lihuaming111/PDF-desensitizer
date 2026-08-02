@@ -18,13 +18,29 @@
         - name: Download Tesseract
           run: |
             curl -L -o tesseract-setup.exe "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe"
-            tesseract-setup.exe /SILENT /DIR="tesseract"
+            tesseract-setup.exe /SILENT /DIR=tesseract
             curl -L -o tesseract/tessdata/chi_sim.traineddata "https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata"
 
         - name: Build with PyInstaller
-          run: pyinstaller --onedir --windowed --name="PDF脱敏工具" --distpath=dist --workpath=build_output --noconfirm --clean --add-data="patterns.py;." --add-data="desensitizer.py;."
-  --add-data="bundle.py;." --add-binary="tesseract/tesseract.exe;tesseract/" --hidden-import=PIL --hidden-import=PIL.Image --hidden-import=pytesseract --hidden-import=fitz --hidden-import=tkinter
-  main.py
+          run: >
+            pyinstaller
+            --onedir
+            --windowed
+            --name=PDF脱敏工具
+            --distpath=dist
+            --workpath=build_output
+            --noconfirm
+            --clean
+            --add-data=patterns.py;.
+            --add-data=desensitizer.py;.
+            --add-data=bundle.py;.
+            --add-binary=tesseract/tesseract.exe;tesseract/
+            --hidden-import=PIL
+            --hidden-import=PIL.Image
+            --hidden-import=pytesseract
+            --hidden-import=fitz
+            --hidden-import=tkinter
+            main.py
 
         - name: Bundle and package
           run: python bundle.py
