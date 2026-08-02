@@ -46,40 +46,28 @@ LONG_DIGITS = re.compile(r'\b\d{16,19}\b')
 # ---- Tier 2: 标签前缀匹配 ----
 
 def _build_patient_name_pattern() -> re.Pattern:
-    builtin = ['患者姓名', '病人姓名', '家属姓名', '联系人姓名', r'姓\s*名', '姓名', '联系人']
-    custom = _config.get("patient_name_labels", [])
-    labels = builtin + [re.escape(l) for l in custom if l.strip()]
+    labels = _config.get("patient_name_labels", [])
+    labels.append(r'姓\s*名')  # 兼容空格变体"姓  名"
+    labels = [re.escape(l) if '\\' not in l else l for l in labels if l.strip()]
     return re.compile(r'(?:' + '|'.join(labels) + r')[：:，,\s]*([一-鿿]{2,3})')
 
 def _build_doctor_name_pattern() -> re.Pattern:
-    builtin = [
-        r'(?:主治|主任|副主任|住院|经治|主管|接诊|处置)?(?:医师|医生|大夫)',
-        r'(?:责任|主管|巡回)?(?:护士|护师)',
-        r'(?:麻醉|手术)?(?:医师|医生)',
-    ]
-    custom = _config.get("doctor_name_labels", [])
-    labels = builtin + [re.escape(l) for l in custom if l.strip()]
+    labels = _config.get("doctor_name_labels", [])
+    labels = [re.escape(l) for l in labels if l.strip()]
     return re.compile(r'(?:' + '|'.join(labels) + r')[：:，,\s]*([一-鿿]{2,3})')
 
 def _build_address_pattern() -> re.Pattern:
-    builtin = [
-        '地址', '住址', '家庭住址', '家庭地址', '通讯地址', '联系地址',
-        '户口地址', '现住址', '详细地址', '户籍地址', '常住地址',
-        '单位地址', '注册地址', '联系地址',
-    ]
-    custom = _config.get("address_labels", [])
-    labels = builtin + [re.escape(l) for l in custom if l.strip()]
+    labels = _config.get("address_labels", [])
+    labels = [re.escape(l) for l in labels if l.strip()]
     return re.compile(
         r'(?:' + '|'.join(labels) + r')[：:，,\s]*'
-        r'([^\s\-].{4,79}?)(?:$|。|；|\s*(?:电话|邮编|单位电话)\b)',
+        r'([^\s\-].{1,79}?)(?:$|。|；|\s*(?:电话|邮编|单位电话)\b)',
         re.DOTALL
     )
 
 def _build_medical_record_pattern() -> re.Pattern:
-    builtin = ['住院号', '病历号', '病案号', '登记号', '门诊号', '就诊号',
-               '病例号', '住院病历号', '住院号ID', '病历号No']
-    custom = _config.get("medical_record_labels", [])
-    labels = builtin + [re.escape(l) for l in custom if l.strip()]
+    labels = _config.get("medical_record_labels", [])
+    labels = [re.escape(l) for l in labels if l.strip()]
     return re.compile(
         r'(?:' + '|'.join(labels) + r')[：:，,\s]+'
         r'([A-Za-z0-9\-/_]+)',
