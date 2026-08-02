@@ -23,6 +23,7 @@
             curl -L -o tesseract\tessdata\chi_sim.traineddata "https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata"
 
         - name: Build with PyInstaller
+          shell: cmd
           run: >
             pyinstaller
             --onedir
