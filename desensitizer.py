@@ -39,19 +39,20 @@ class Desensitizer:
     # 公共方法
     # ------------------------------------------------------------------
 
-    def scan(self, pdf_path: str | Path) -> FileDetectionSummary:
+    def scan(self, pdf_path: str | Path, known_names: list[str] | None = None) -> FileDetectionSummary:
         """扫描PDF，检测全部敏感数据，返回汇总结果。"""
         pdf_path = Path(pdf_path)
         doc = fitz.open(str(pdf_path))
         total_pages = len(doc)
         detections: list[DetectionResult] = []
+        known_names = known_names or []
 
         try:
             for page_num in range(total_pages):
                 page = doc[page_num]
                 frac = (page_num + 1) / total_pages
                 self._report(f"正在扫描第 {page_num + 1}/{total_pages} 页...", frac)
-                page_detections = self._scan_page(page, page_num)
+                page_detections = self._scan_page(page, page_num, known_names)
                 detections.extend(page_detections)
         finally:
             doc.close()
@@ -62,11 +63,12 @@ class Desensitizer:
             detections=detections,
         )
 
-    def redact(self, pdf_path: str | Path, output_path: str | Path) -> int:
+    def redact(self, pdf_path: str | Path, output_path: str | Path, known_names: list[str] | None = None) -> int:
         """脱敏PDF，返回覆盖处数。"""
         pdf_path = Path(pdf_path)
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        known_names = known_names or []
 
         doc = fitz.open(str(pdf_path))
         total_pages = len(doc)
@@ -78,7 +80,7 @@ class Desensitizer:
                 frac = (page_num + 1) / total_pages
                 self._report(f"正在脱敏第 {page_num + 1}/{total_pages} 页...", frac)
 
-                detections = self._scan_page(page, page_num)
+                detections = self._scan_page(page, page_num, known_names)
                 for det in detections:
                     # 将同目标的多个rect合并为一个覆盖区域
                     if len(det.rects) >= 2:
@@ -118,23 +120,23 @@ class Desensitizer:
     # 单页扫描（自动判断文本/扫描件）
     # ------------------------------------------------------------------
 
-    def _scan_page(self, page: fitz.Page, page_num: int) -> list[DetectionResult]:
+    def _scan_page(self, page: fitz.Page, page_num: int, known_names: list[str]) -> list[DetectionResult]:
         """对单页执行检测，自动识别扫描件并使用OCR。"""
         blocks = page.get_text("blocks")
         text_blocks = [b for b in blocks if b[6] == 0 and b[4].strip()]
 
         if text_blocks:
-            return self._scan_text_page(page, page_num, text_blocks)
+            return self._scan_text_page(page, page_num, text_blocks, known_names)
         else:
             self._report(f"  第{page_num+1}页: 扫描件，启用OCR识别...", 0)
-            return self._scan_ocr_page(page, page_num)
+            return self._scan_ocr_page(page, page_num, known_names)
 
     # ------------------------------------------------------------------
     # 文字层扫描
     # ------------------------------------------------------------------
 
     def _scan_text_page(
-        self, page: fitz.Page, page_num: int, text_blocks: list
+        self, page: fitz.Page, page_num: int, text_blocks: list, known_names: list[str]
     ) -> list[DetectionResult]:
         """对含文字层的页面执行模式匹配。"""
         detections: list[DetectionResult] = []
@@ -183,6 +185,14 @@ class Desensitizer:
         else:
             self._report(f"    未检测到敏感数据", 0)
 
+        # 已知姓名全页搜索
+        for name in known_names:
+            name_rects = page.search_for(name)
+            if name_rects:
+                detections.append(
+                    DetectionResult(page_num, "已知姓名", name, name_rects)
+                )
+
         return detections
 
     # ------------------------------------------------------------------
@@ -190,7 +200,7 @@ class Desensitizer:
     # ------------------------------------------------------------------
 
     def _scan_ocr_page(
-        self, page: fitz.Page, page_num: int
+        self, page: fitz.Page, page_num: int, known_names: list[str]
     ) -> list[DetectionResult]:
         """对扫描件页面执行OCR识别 + 模式匹配。"""
         detections: list[DetectionResult] = []
@@ -267,6 +277,20 @@ class Desensitizer:
                         detections.append(
                             DetectionResult(page_num, pattern_type, target, rects)
                         )
+
+        # 已知姓名搜索（OCR文本）
+        for name in known_names:
+            for line_text, line_words in lines:
+                idx = line_text.find(name)
+                if idx == -1:
+                    continue
+                rects = self._ocr_target_rects(
+                    line_words, idx, idx + len(name), scale
+                )
+                if rects:
+                    detections.append(
+                        DetectionResult(page_num, "已知姓名", name, rects)
+                    )
 
         return detections
 

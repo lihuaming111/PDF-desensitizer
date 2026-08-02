@@ -113,6 +113,13 @@ class DesensitizerApp:
 
         ttk.Separator(left, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 8))
 
+        ttk.Label(left, text="已知患者姓名:").pack(anchor=tk.W)
+        self.known_name_var = tk.StringVar()
+        ttk.Entry(left, textvariable=self.known_name_var, width=18).pack(pady=(2, 4))
+        ttk.Label(left, text="（多个姓名用逗号分隔）", foreground="gray", font=("", 9)).pack(pady=(0, 8))
+
+        ttk.Separator(left, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 8))
+
         ttk.Button(left, text="刷新文件列表", command=self._refresh_file_list, **btn_opts).pack(pady=(0, 6))
         ttk.Button(left, text="打开输入文件夹", command=self._open_input_dir, **btn_opts).pack(pady=(0, 6))
         ttk.Button(left, text="打开输出文件夹", command=self._open_output_dir, **btn_opts).pack(pady=(0, 6))
@@ -260,12 +267,14 @@ class DesensitizerApp:
         self._disable_buttons()
         self.scan_results.clear()
 
+        known = [n.strip() for n in self.known_name_var.get().split(",") if n.strip()]
+
         def _run():
             total = len(files)
             for idx, f in enumerate(files):
                 self._log(f"开始扫描: {f.name}")
                 try:
-                    summary = self.desensitizer.scan(f)
+                    summary = self.desensitizer.scan(f, known)
                     self.scan_results[f.name] = summary
 
                     n = len(summary.detections)
@@ -315,6 +324,8 @@ class DesensitizerApp:
         self.is_processing = True
         self._disable_buttons()
 
+        known = [n.strip() for n in self.known_name_var.get().split(",") if n.strip()]
+
         def _run():
             total = len(files)
             success = 0
@@ -322,7 +333,7 @@ class DesensitizerApp:
                 out_path = OUTPUT_DIR / f.name
                 self._log(f"开始脱敏: {f.name}")
                 try:
-                    count = self.desensitizer.redact(f, out_path)
+                    count = self.desensitizer.redact(f, out_path, known)
                     self.root.after(0, lambda fn=f.name, c=count: self._update_tree_status(fn, f"已脱敏: {c}处", "redacted"))
                     self._log(f"  脱敏完成: 覆盖 {count} 处，保存至 {out_path.name}", "success")
                     success += 1
