@@ -16,6 +16,7 @@ if not _TESSERACT_BIN.exists():
     _TESSERACT_BIN = _BASE_DIR / "tesseract" / "tesseract"  # macOS 便携版
 if not _TESSERACT_BIN.exists():
     _TESSERACT_BIN = _BASE_DIR / "tesseract"  # macOS PyInstaller
+_TESSERACT_FOUND = False
 if _TESSERACT_BIN.exists():
     # 将 tesseract 目录加入 DLL 搜索路径（Windows 需要找到 leptonica 等 DLL）
     if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
@@ -25,6 +26,7 @@ if _TESSERACT_BIN.exists():
     import pytesseract
     pytesseract.pytesseract.tesseract_cmd = str(_TESSERACT_BIN)
     os.environ.setdefault("TESSDATA_PREFIX", str(_TESSERACT_BIN.parent / "tessdata"))
+    _TESSERACT_FOUND = True
 
 import fitz
 fitz.TOOLS.mupdf_warnings(False)
@@ -52,12 +54,19 @@ class DesensitizerApp:
         self.desensitizer = Desensitizer()
         self.desensitizer.set_progress_callback(self._on_progress)
 
+        # 日志 Tesseract 状态
+        if _TESSERACT_FOUND:
+            self._tess_info = f"Tesseract: {_TESSERACT_BIN}"
+        else:
+            self._tess_info = f"Tesseract: 未找到 (已检查 {_BASE_DIR / 'tesseract'})，扫描件PDF将无法OCR识别"
+
         self.file_list: list[Path] = []
         self.check_vars: dict[str, tk.BooleanVar] = {}
         self.scan_results: dict[str, object] = {}
         self.is_processing = False
 
         self._build_ui()
+        self._log(self._tess_info, "success" if _TESSERACT_FOUND else "warn")
         self._refresh_file_list()
 
     # ------------------------------------------------------------------
