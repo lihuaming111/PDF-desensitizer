@@ -37,11 +37,11 @@ _config = _load_config()
 
 # ---- Tier 1: 高精度模式匹配 ----
 
-ID_CARD = re.compile(r'\b[1-9]\d{16}[\dXx]\b')
-PHONE = re.compile(r'\b1[3-9]\d{9}\b')
-LANDLINE = re.compile(r'\b0\d{2,3}[-\s]?\d{7,8}\b')
-EMAIL = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b')
-LONG_DIGITS = re.compile(r'\b\d{16,19}\b')
+ID_CARD = re.compile(r'(?<!\d)[1-9]\d{16}[\dXx](?!\d)')
+PHONE = re.compile(r'(?<!\d)1[3-9]\d{9}(?!\d)')
+LANDLINE = re.compile(r'(?<!\d)0\d{2,3}[-\s]?\d{7,8}(?!\d)')
+EMAIL = re.compile(r'(?<![A-Za-z0-9._%+\-@])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z0-9.])')
+LONG_DIGITS = re.compile(r'(?<!\d)\d{16,19}(?!\d)')
 
 # ---- Tier 2: 标签前缀匹配 ----
 
@@ -118,7 +118,7 @@ _NAME_BLACKLIST = {
     '目前', '进一步', '必要时', '定期', '随访', '复查', '入院病情',
     '质质近', '质近', '了多', '二钊', '基', '讽基', '风术', '色侯',
     '色吴', '了和', '于厘', '匕峭', '并了',
-    '姓名',
+    '姓名', '关系',
 }
 
 # ---- 已脱敏标记 ----
