@@ -22,6 +22,21 @@ OCR_LANG = "chi_sim"
 OCR_CONFIDENCE_MIN = 50  # Tier 2 模式最低平均置信度
 
 
+def _group_nearby_rects(rects: list, y_gap: float = 20) -> list[list]:
+    """将 rects 按 Y 坐标分组，相距较远的 rect 不合并。"""
+    if len(rects) <= 1:
+        return [rects]
+    sorted_rects = sorted(rects, key=lambda r: (r.y0, r.x0))
+    groups = [[sorted_rects[0]]]
+    for r in sorted_rects[1:]:
+        prev = groups[-1][-1]
+        if abs(r.y0 - prev.y0) < y_gap and abs(r.y1 - prev.y1) < y_gap:
+            groups[-1].append(r)
+        else:
+            groups.append([r])
+    return groups
+
+
 class Desensitizer:
     """PDF敏感数据检测和脱敏引擎"""
 
@@ -82,22 +97,18 @@ class Desensitizer:
 
                 detections = self._scan_page(page, page_num, found_names)
                 for det in detections:
-                    # 将同目标的多个rect合并为一个覆盖区域
-                    if len(det.rects) >= 2:
-                        merged = det.rects[0]
-                        for r in det.rects[1:]:
+                    for group in _group_nearby_rects(det.rects):
+                        merged = group[0]
+                        for r in group[1:]:
                             merged = merged | r
-                    else:
-                        merged = det.rects[0]
-                    # 扩大边距，补偿OCR坐标偏差
-                    margin_x = max(merged.width * 0.15, 8)
-                    margin_y = max(merged.height * 0.10, 6)
-                    expanded = fitz.Rect(
-                        merged.x0 - margin_x, merged.y0 - margin_y,
-                        merged.x1 + margin_x, merged.y1 + margin_y,
-                    )
-                    page.add_redact_annot(expanded, fill=(0, 0, 0))
-                    total_redacted += 1
+                        margin_x = max(merged.width * 0.15, 8)
+                        margin_y = max(merged.height * 0.10, 6)
+                        expanded = fitz.Rect(
+                            merged.x0 - margin_x, merged.y0 - margin_y,
+                            merged.x1 + margin_x, merged.y1 + margin_y,
+                        )
+                        page.add_redact_annot(expanded, fill=(0, 0, 0))
+                        total_redacted += 1
 
                 if detections:
                     page.apply_redactions()
